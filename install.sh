@@ -45,11 +45,52 @@ cp "$TMP_TYPEUI/.claude/skills/design-system/SKILL.md" \
    "$HOME/.claude/skills/design-system-clean/SKILL.md"
 rm -rf "$TMP_TYPEUI"
 
+# 5. Google Cloud / AI skills (BigQuery, Cloud Run, Firebase, Gemini, GKE, AlloyDB, etc.)
+npx -y skills add google/skills -g -y -s '*' -a claude-code 1>&2
+
+# 6. Light mode resource controls (apply once if not already configured)
+if command -v jq >/dev/null 2>&1; then
+  if [[ ! -f "$HOME/.claude/settings.json" ]] || ! jq -e 'has("skillListingMaxDescChars")' "$HOME/.claude/settings.json" >/dev/null 2>&1; then
+    LIGHT_SETTINGS_JSON='{
+  "skillListingMaxDescChars": 256,
+  "skillListingBudgetFraction": 0.005,
+  "skillOverrides": {
+    "alloydb-basics": "name-only",
+    "bigquery-basics": "name-only",
+    "cloud-run-basics": "name-only",
+    "cloud-sql-basics": "name-only",
+    "firebase-basics": "name-only",
+    "gemini-api": "name-only",
+    "gke-basics": "name-only",
+    "google-cloud-recipe-auth": "name-only",
+    "google-cloud-recipe-networking-observability": "name-only",
+    "google-cloud-recipe-onboarding": "name-only",
+    "google-cloud-waf-cost-optimization": "name-only",
+    "google-cloud-waf-reliability": "name-only",
+    "google-cloud-waf-security": "name-only"
+  }
+}'
+    if [[ -f "$HOME/.claude/settings.json" ]]; then
+      cp "$HOME/.claude/settings.json" "$HOME/.claude/settings.json.bak.$(date +%Y%m%d%H%M%S)"
+      jq -s '.[0] * .[1]' "$HOME/.claude/settings.json" <(echo "$LIGHT_SETTINGS_JSON") > "$HOME/.claude/settings.json.tmp"
+      mv "$HOME/.claude/settings.json.tmp" "$HOME/.claude/settings.json"
+    else
+      mkdir -p "$HOME/.claude"
+      echo "$LIGHT_SETTINGS_JSON" > "$HOME/.claude/settings.json"
+    fi
+    echo "applied Light mode resource limits to ~/.claude/settings.json" >&2
+  fi
+else
+  echo "warning: jq not found; skipping Light mode settings (install jq to enable)" >&2
+fi
+
 {
   echo
   echo "done."
-  echo "  ~/.claude/CLAUDE.md"
+  echo "  ~/.claude/CLAUDE.md (light: ~3 KB, no @-imports)"
   echo "  ~/.claude/design/{cursor,notion,stripe,linear,vercel}.md"
   echo "  ~/.claude/design/jp-ui-contracts/"
   echo "  ~/.claude/skills/design-system-clean/SKILL.md"
+  echo "  ~/.claude/skills/google-* (14 skills)"
+  echo "  ~/.claude/settings.json (Light mode applied if missing key)"
 } >&2
